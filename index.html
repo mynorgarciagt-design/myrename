@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generador de Nomenclatura</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React y ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel para leer JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Librerías de Excel y JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body class="bg-zinc-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Íconos SVG (Reemplazo de lucide-react para que funcione en 1 solo archivo)
+    const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
+    const FileSpreadsheet = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>;
+    const Upload = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
+    const Layers = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>;
+    const List = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
+    const ImageIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
+    const Download = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+    const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+
+    function App() {
+      const [baseNames, setBaseNames] = useState([]);
+      const [generatedRows, setGeneratedRows] = useState([]);
+      const [sequence, setSequence] = useState('1, 2, 3, 4');
+      const [orderMode, setOrderMode] = useState('agrupado');
+      const [fileName, setFileName] = useState('');
+      const [uploadedImages, setUploadedImages] = useState([]);
+      const [errorMsg, setErrorMsg] = useState('');
+
+      const handleFileUpload = (e) => {
+        setErrorMsg('');
+        
+        const file = e.target.files[0];
+        if (!file) return;
+        setFileName(file.name);
+        
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = window.XLSX.read(data, { type: 'array' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = window.XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            const names = json
+              .filter(row => Array.isArray(row) && row.length > 0)
+              .map(row => {
+                const templateCell = row.find(col => {
+                  const str = String(col || '');
+                  return str.includes('-01-') && (str.toLowerCase().includes('.jpg') || str.toLowerCase().includes('.jpeg'));
+                });
+
+                if (!templateCell) return null;
+
+                return { 
+                  original: String(row[0] || '').trim(),
+                  template: String(templateCell).trim()
+                };
+              })
+              .filter(item => item !== null);
+              
+            if (names.length === 0) setErrorMsg("No encontré filas con el formato de imagen (-01- y .jpg/.jpeg)");
+              
+            setBaseNames(names);
+          } catch (err) { 
+            setErrorMsg("Hubo un error al leer el archivo Excel/CSV.");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      };
+
+      const handleImagesUpload = (e) => {
+        const files = Array.from(e.target.files);
+        // Ordenar los archivos por su nombre para asegurar que mantengan el orden del Finder
+        files.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+        setUploadedImages(files);
+      };
+
+      const generateData = () => {
+        if (baseNames.length === 0) {
+          setGeneratedRows([]);
+          return;
+        }
+        let result = [];
+        const seqArray = sequence.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+        if (seqArray.length === 0) return;
+
+        const getNewName = (name, num) => {
+          const numStr = num.toString().padStart(2, '0');
+          return name.replace('-01-', `-${numStr}-`); 
+        };
+
+        if (orderMode === 'agrupado') {
+          baseNames.forEach(item => {
+            seqArray.forEach(num => {
+              result.push({ original: item.original, nuevo: getNewName(item.template, num) });
+            });
+          });
+        } else {
+          seqArray.forEach(num => {
+            baseNames.forEach(item => {
+              result.push({ original: item.original, nuevo: getNewName(item.template, num) });
+            });
+          });
+        }
+        setGeneratedRows(result);
+      };
+
+      useEffect(() => { generateData(); }, [baseNames, sequence, orderMode]);
+
+      const downloadExcel = () => {
+        if (generatedRows.length === 0) return;
+        const data = [['SKU Original', 'Nuevo Nombre Archivo', 'Comando MV'], ...generatedRows.map((row, i) => [
+          row.original, row.nuevo, `="mv """&A${i+2}&""" """&B${i+2}&""""`
+        ])];
+        const ws = window.XLSX.utils.aoa_to_sheet(data);
+        const wb = window.XLSX.utils.book_new();
+        window.XLSX.utils.book_append_sheet(wb, ws, "Nomenclaturas");
+        window.XLSX.writeFile(wb, 'Planilla_Nomenclatura.xlsx');
+      };
+
+      const downloadZip = async () => {
+        if (uploadedImages.length === 0 || generatedRows.length === 0) return;
+        
+        const zip = new window.JSZip();
+        
+        uploadedImages.forEach((file, i) => {
+          if (generatedRows[i]) {
+            const ext = file.name.split('.').pop();
+            let newName = generatedRows[i].nuevo;
+            if (!newName.toLowerCase().endsWith(`.${ext.toLowerCase()}`)) {
+               newName = newName.replace(/\.[^/.]+$/, "") + `.${ext}`;
+            }
+            zip.file(newName, file);
+          }
+        });
+
+        const content = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "imagenes_renombradas.zip";
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      return (
+        <div className="min-h-screen bg-zinc-100 p-4 md:p-8 font-sans">
+          <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-zinc-200">
+            <div className="bg-zinc-900 p-6 text-white flex justify-between items-center">
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-indigo-400" /> GENERADOR DE NOMENCLATURA
+              </h1>
+              <FileSpreadsheet className="w-8 h-8 opacity-20" />
+            </div>
+
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-4 space-y-6">
+                {errorMsg && (
+                  <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-medium flex gap-2 items-start">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase flex justify-between">
+                    <span>1. Base (Excel/CSV)</span>
+                  </label>
+                  <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-xl cursor-pointer transition-colors bg-zinc-50 hover:bg-zinc-100 border-zinc-300">
+                    <span className="text-xs font-bold truncate px-2 w-full text-center text-zinc-600 flex items-center justify-center gap-2">
+                      <Upload className="w-4 h-4 text-zinc-400" />
+                      {fileName || "Subir Excel o CSV"}
+                    </span>
+                    <input type="file" className="hidden" accept=".csv, .xlsx" onChange={handleFileUpload} />
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase">2. Secuencia</label>
+                  <input type="text" value={sequence} onChange={(e) => setSequence(e.target.value)} placeholder="Ej: 1, 2, 3, 4" className="w-full p-2 border rounded-lg font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase">3. Orden</label>
+                  <div className="flex gap-2">
+                    <button onClick={() => setOrderMode('agrupado')} className={`flex-1 p-2 rounded-lg border text-center transition-colors ${orderMode === 'agrupado' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`}>
+                      <span className="text-xs font-bold flex items-center justify-center gap-1"><Layers className="w-3 h-3" /> Agrupado</span>
+                    </button>
+                    <button onClick={() => setOrderMode('intercalado')} className={`flex-1 p-2 rounded-lg border text-center transition-colors ${orderMode === 'intercalado' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`}>
+                      <span className="text-xs font-bold flex items-center justify-center gap-1"><List className="w-3 h-3" /> Intercalado</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t border-zinc-100">
+                  <label className="text-xs font-bold text-indigo-500 uppercase flex justify-between">
+                    <span>4. Subir Imágenes (Opcional)</span>
+                    <span className="text-zinc-400">{uploadedImages.length} cargadas</span>
+                  </label>
+                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-indigo-200 border-dashed rounded-xl cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                    <ImageIcon className="w-6 h-6 text-indigo-400 mb-1" />
+                    <span className="text-xs font-medium px-4 text-center text-indigo-800">
+                      Selecciona fotos en Finder
+                    </span>
+                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleImagesUpload} />
+                  </label>
+                  {uploadedImages.length > 0 && uploadedImages.length !== generatedRows.length && (
+                    <p className="text-[10px] text-amber-600 font-bold">
+                      ⚠️ Subiste {uploadedImages.length} fotos pero la lista espera {generatedRows.length}.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button onClick={downloadExcel} disabled={!generatedRows.length} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl font-bold hover:bg-zinc-900 disabled:bg-zinc-200 disabled:text-zinc-400 transition-all active:scale-95 text-xs flex items-center justify-center gap-2">
+                    <FileSpreadsheet className="w-4 h-4" /> EXCEL
+                  </button>
+                  <button onClick={downloadZip} disabled={!uploadedImages.length || !generatedRows.length} className="flex-1 bg-indigo-600 text-white p-3 rounded-xl font-bold hover:bg-indigo-700 disabled:bg-zinc-200 disabled:text-zinc-400 shadow-lg shadow-indigo-100 transition-all active:scale-95 text-xs flex items-center justify-center gap-2 disabled:shadow-none">
+                    <Download className="w-4 h-4" /> ZIP FOTOS
+                  </button>
+                </div>
+              </div>
+
+              <div className="lg:col-span-8 border rounded-xl overflow-hidden bg-white flex flex-col h-[600px]">
+                <div className="p-3 bg-zinc-50 border-b flex justify-between items-center">
+                  <span className="text-xs font-bold text-zinc-400">VISTA PREVIA DE NOMENCLATURA</span>
+                  <span className="text-xs font-bold bg-white px-2 py-1 rounded border">{generatedRows.length} nombres generados</span>
+                </div>
+                <div className="flex-1 overflow-auto">
+                  <table className="w-full text-[11px] font-mono border-collapse">
+                    <thead className="bg-zinc-50 sticky top-0 shadow-sm">
+                      <tr>
+                        <th className="p-3 border-b text-left w-16 text-zinc-400">#</th>
+                        <th className="p-3 border-b text-left w-1/3">IMAGEN SUBIDA</th>
+                        <th className="p-3 border-b text-left">NUEVO NOMBRE</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {generatedRows.length > 0 ? (
+                        generatedRows.map((r, i) => {
+                          const fileObj = uploadedImages[i];
+                          return (
+                            <tr key={i} className="border-b hover:bg-zinc-50">
+                              <td className="p-3 text-zinc-300">{i + 1}</td>
+                              <td className="p-3 text-zinc-500 truncate max-w-[150px]">
+                                {fileObj ? (
+                                  <span className="text-green-600 font-bold">{fileObj.name}</span>
+                                ) : (
+                                  <span className="text-zinc-300 italic">Esperando foto...</span>
+                                )}
+                              </td>
+                              <td className="p-3 font-bold text-indigo-600 truncate max-w-[250px]" title={r.nuevo}>{r.nuevo}</td>
+                            </tr>
+                          )
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="3" className="p-20 text-center text-zinc-400 italic flex flex-col items-center justify-center gap-2 h-full border-none">
+                            <FileSpreadsheet className="w-12 h-12 opacity-20 mb-2" />
+                            Sube un archivo base para empezar
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
