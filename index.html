@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Generador de Nomenclatura</title>
   
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -12,27 +17,33 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   
-  <!-- Babel para leer JSX -->
+  <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
-  <!-- Librerías de Excel y JSZip -->
+  <!-- Excel y JSZip -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8f9fa;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+  </style>
 </head>
-<body class="bg-zinc-100">
+<body>
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Íconos SVG (Reemplazo de lucide-react para que funcione en 1 solo archivo)
-    const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
-    const FileSpreadsheet = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>;
-    const Upload = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
-    const Layers = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>;
-    const List = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
+    const Plus = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+    const Check = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>;
     const ImageIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
-    const Download = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
     const AlertCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
 
     function App() {
@@ -46,7 +57,6 @@
 
       const handleFileUpload = (e) => {
         setErrorMsg('');
-        
         const file = e.target.files[0];
         if (!file) return;
         setFileName(file.name);
@@ -66,18 +76,12 @@
                   const str = String(col || '');
                   return str.includes('-01-') && (str.toLowerCase().includes('.jpg') || str.toLowerCase().includes('.jpeg'));
                 });
-
                 if (!templateCell) return null;
-
-                return { 
-                  original: String(row[0] || '').trim(),
-                  template: String(templateCell).trim()
-                };
+                return { original: String(row[0] || '').trim(), template: String(templateCell).trim() };
               })
               .filter(item => item !== null);
               
             if (names.length === 0) setErrorMsg("No encontré filas con el formato de imagen (-01- y .jpg/.jpeg)");
-              
             setBaseNames(names);
           } catch (err) { 
             setErrorMsg("Hubo un error al leer el archivo Excel/CSV.");
@@ -88,7 +92,6 @@
 
       const handleImagesUpload = (e) => {
         const files = Array.from(e.target.files);
-        // Ordenar los archivos por su nombre para asegurar que mantengan el orden del Finder
         files.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
         setUploadedImages(files);
       };
@@ -109,15 +112,11 @@
 
         if (orderMode === 'agrupado') {
           baseNames.forEach(item => {
-            seqArray.forEach(num => {
-              result.push({ original: item.original, nuevo: getNewName(item.template, num) });
-            });
+            seqArray.forEach(num => result.push({ original: item.original, nuevo: getNewName(item.template, num) }));
           });
         } else {
           seqArray.forEach(num => {
-            baseNames.forEach(item => {
-              result.push({ original: item.original, nuevo: getNewName(item.template, num) });
-            });
+            baseNames.forEach(item => result.push({ original: item.original, nuevo: getNewName(item.template, num) }));
           });
         }
         setGeneratedRows(result);
@@ -138,7 +137,6 @@
 
       const downloadZip = async () => {
         if (uploadedImages.length === 0 || generatedRows.length === 0) return;
-        
         const zip = new window.JSZip();
         
         uploadedImages.forEach((file, i) => {
@@ -162,120 +160,140 @@
       };
 
       return (
-        <div className="min-h-screen bg-zinc-100 p-4 md:p-8 font-sans">
-          <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-zinc-200">
-            <div className="bg-zinc-900 p-6 text-white flex justify-between items-center">
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-indigo-400" /> GENERADOR DE NOMENCLATURA
-              </h1>
-              <FileSpreadsheet className="w-8 h-8 opacity-20" />
+        <div className="min-h-screen p-4 md:p-8 text-zinc-900 flex flex-col items-center">
+          <div className="w-full max-w-6xl">
+            
+            {/* Header */}
+            <div className="mb-8 flex items-center gap-3">
+              <h1 className="text-3xl font-extrabold tracking-tight">Generador de Nomenclatura</h1>
+              <div className="bg-[#d4ff00] rounded-full p-1.5 flex items-center justify-center">
+                <Check className="w-5 h-5 text-black" />
+              </div>
             </div>
 
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-4 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Columna Izquierda: Controles (Estructura Original) */}
+              <div className="lg:col-span-4 space-y-5">
+                
                 {errorMsg && (
-                  <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-medium flex gap-2 items-start">
+                  <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold flex gap-3 items-center border border-red-100">
                     <AlertCircle className="w-5 h-5 shrink-0" />
                     <span>{errorMsg}</span>
                   </div>
                 )}
-                
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase flex justify-between">
-                    <span>1. Base (Excel/CSV)</span>
-                  </label>
-                  <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-xl cursor-pointer transition-colors bg-zinc-50 hover:bg-zinc-100 border-zinc-300">
-                    <span className="text-xs font-bold truncate px-2 w-full text-center text-zinc-600 flex items-center justify-center gap-2">
-                      <Upload className="w-4 h-4 text-zinc-400" />
-                      {fileName || "Subir Excel o CSV"}
-                    </span>
-                    <input type="file" className="hidden" accept=".csv, .xlsx" onChange={handleFileUpload} />
-                  </label>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase">2. Secuencia</label>
-                  <input type="text" value={sequence} onChange={(e) => setSequence(e.target.value)} placeholder="Ej: 1, 2, 3, 4" className="w-full p-2 border rounded-lg font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase">3. Orden</label>
-                  <div className="flex gap-2">
-                    <button onClick={() => setOrderMode('agrupado')} className={`flex-1 p-2 rounded-lg border text-center transition-colors ${orderMode === 'agrupado' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`}>
-                      <span className="text-xs font-bold flex items-center justify-center gap-1"><Layers className="w-3 h-3" /> Agrupado</span>
-                    </button>
-                    <button onClick={() => setOrderMode('intercalado')} className={`flex-1 p-2 rounded-lg border text-center transition-colors ${orderMode === 'intercalado' ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`}>
-                      <span className="text-xs font-bold flex items-center justify-center gap-1"><List className="w-3 h-3" /> Intercalado</span>
-                    </button>
+                {/* Paso 1: Excel */}
+                <div className="bg-white rounded-3xl p-5 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border border-gray-100">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-3 h-3 bg-[#d4ff00] rounded-sm"></div>
+                      <span className="font-bold text-gray-800 text-sm">1. Documento Base</span>
+                    </div>
+                    <label className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors border border-gray-100">
+                      <Plus className="w-4 h-4 text-gray-600" />
+                      <input type="file" className="hidden" accept=".csv, .xlsx" onChange={handleFileUpload} />
+                    </label>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3 text-center border border-dashed border-gray-200">
+                    <p className="text-xs font-bold text-gray-500 truncate">{fileName || "Ningún Excel / CSV"}</p>
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-4 border-t border-zinc-100">
-                  <label className="text-xs font-bold text-indigo-500 uppercase flex justify-between">
-                    <span>4. Subir Imágenes (Opcional)</span>
-                    <span className="text-zinc-400">{uploadedImages.length} cargadas</span>
-                  </label>
-                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-indigo-200 border-dashed rounded-xl cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                    <ImageIcon className="w-6 h-6 text-indigo-400 mb-1" />
-                    <span className="text-xs font-medium px-4 text-center text-indigo-800">
-                      Selecciona fotos en Finder
-                    </span>
-                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleImagesUpload} />
-                  </label>
-                  {uploadedImages.length > 0 && uploadedImages.length !== generatedRows.length && (
-                    <p className="text-[10px] text-amber-600 font-bold">
-                      ⚠️ Subiste {uploadedImages.length} fotos pero la lista espera {generatedRows.length}.
-                    </p>
-                  )}
+                {/* Pasos 2 y 3: Secuencia y Orden */}
+                <div className="bg-white rounded-3xl p-5 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border border-gray-100 space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">2. Secuencia</label>
+                    <input 
+                      type="text" 
+                      value={sequence} 
+                      onChange={(e) => setSequence(e.target.value)} 
+                      placeholder="Ej: 1, 2, 3, 4" 
+                      className="w-full bg-gray-50 p-3 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#d4ff00] transition-all" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">3. Orden Lógico</label>
+                    <div className="flex bg-gray-50 rounded-xl p-1 relative border border-gray-100">
+                      <button onClick={() => setOrderMode('agrupado')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${orderMode === 'agrupado' ? 'bg-white shadow-sm text-black border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}>Agrupado</button>
+                      <button onClick={() => setOrderMode('intercalado')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${orderMode === 'intercalado' ? 'bg-white shadow-sm text-black border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}>Intercalado</button>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex gap-2 pt-2">
-                  <button onClick={downloadExcel} disabled={!generatedRows.length} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl font-bold hover:bg-zinc-900 disabled:bg-zinc-200 disabled:text-zinc-400 transition-all active:scale-95 text-xs flex items-center justify-center gap-2">
-                    <FileSpreadsheet className="w-4 h-4" /> EXCEL
+                {/* Paso 4: Imágenes */}
+                <div className="bg-white rounded-3xl p-5 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border border-gray-100">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-3 h-3 bg-black rounded-sm"></div>
+                      <span className="font-bold text-gray-800 text-sm">4. Imágenes (Opcional)</span>
+                    </div>
+                    <label className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors border border-gray-100">
+                      <Plus className="w-4 h-4 text-gray-600" />
+                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleImagesUpload} />
+                    </label>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3 flex justify-between items-center border border-dashed border-gray-200">
+                    <span className="text-xs font-bold text-gray-500">{uploadedImages.length} fotos cargadas</span>
+                    {uploadedImages.length > 0 && uploadedImages.length !== generatedRows.length && (
+                      <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">⚠️ Diferencia</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botones de Acción */}
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-3 pt-2">
+                  <button onClick={downloadExcel} disabled={!generatedRows.length} className="w-full bg-black text-white p-3.5 rounded-full font-bold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm">
+                    Descargar Excel
                   </button>
-                  <button onClick={downloadZip} disabled={!uploadedImages.length || !generatedRows.length} className="flex-1 bg-indigo-600 text-white p-3 rounded-xl font-bold hover:bg-indigo-700 disabled:bg-zinc-200 disabled:text-zinc-400 shadow-lg shadow-indigo-100 transition-all active:scale-95 text-xs flex items-center justify-center gap-2 disabled:shadow-none">
-                    <Download className="w-4 h-4" /> ZIP FOTOS
+                  <button onClick={downloadZip} disabled={!uploadedImages.length || !generatedRows.length} className="w-full bg-[#d4ff00] text-black p-3.5 rounded-full font-bold hover:bg-[#c4ec00] disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm">
+                    Descargar ZIP
                   </button>
                 </div>
+
               </div>
 
-              <div className="lg:col-span-8 border rounded-xl overflow-hidden bg-white flex flex-col h-[600px]">
-                <div className="p-3 bg-zinc-50 border-b flex justify-between items-center">
-                  <span className="text-xs font-bold text-zinc-400">VISTA PREVIA DE NOMENCLATURA</span>
-                  <span className="text-xs font-bold bg-white px-2 py-1 rounded border">{generatedRows.length} nombres generados</span>
+              {/* Columna Derecha: Tabla de Vista Previa (Estructura Original) */}
+              <div className="lg:col-span-8 bg-white rounded-[2rem] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col h-[650px] overflow-hidden">
+                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white z-10">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vista Previa de Nomenclatura</span>
+                  <span className="bg-gray-50 text-black text-xs font-bold px-3 py-1 rounded-full border border-gray-100">{generatedRows.length} resultados</span>
                 </div>
-                <div className="flex-1 overflow-auto">
-                  <table className="w-full text-[11px] font-mono border-collapse">
-                    <thead className="bg-zinc-50 sticky top-0 shadow-sm">
+                
+                <div className="flex-1 overflow-auto bg-white">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead className="text-[10px] text-gray-400 uppercase tracking-wider sticky top-0 bg-white/90 backdrop-blur-sm border-b border-gray-100">
                       <tr>
-                        <th className="p-3 border-b text-left w-16 text-zinc-400">#</th>
-                        <th className="p-3 border-b text-left w-1/3">IMAGEN SUBIDA</th>
-                        <th className="p-3 border-b text-left">NUEVO NOMBRE</th>
+                        <th className="py-3 px-5 font-bold w-16">#</th>
+                        <th className="py-3 px-5 font-bold">Imagen Asignada</th>
+                        <th className="py-3 px-5 font-bold">Nuevo Nombre</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-50">
                       {generatedRows.length > 0 ? (
                         generatedRows.map((r, i) => {
                           const fileObj = uploadedImages[i];
                           return (
-                            <tr key={i} className="border-b hover:bg-zinc-50">
-                              <td className="p-3 text-zinc-300">{i + 1}</td>
-                              <td className="p-3 text-zinc-500 truncate max-w-[150px]">
+                            <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="py-4 px-5 text-gray-400 font-medium">{i + 1}</td>
+                              <td className="py-4 px-5 max-w-[150px] truncate">
                                 {fileObj ? (
-                                  <span className="text-green-600 font-bold">{fileObj.name}</span>
+                                  <span className="inline-flex items-center gap-1.5 font-medium text-gray-900 bg-gray-100 px-2.5 py-1 rounded-md text-xs truncate max-w-full">
+                                    <ImageIcon className="w-3 h-3 text-gray-500 shrink-0" />
+                                    <span className="truncate">{fileObj.name}</span>
+                                  </span>
                                 ) : (
-                                  <span className="text-zinc-300 italic">Esperando foto...</span>
+                                  <span className="text-gray-300 italic text-xs">Sin archivo...</span>
                                 )}
                               </td>
-                              <td className="p-3 font-bold text-indigo-600 truncate max-w-[250px]" title={r.nuevo}>{r.nuevo}</td>
+                              <td className="py-4 px-5 font-mono text-xs font-semibold text-black max-w-[200px] truncate" title={r.nuevo}>{r.nuevo}</td>
                             </tr>
                           )
                         })
                       ) : (
                         <tr>
-                          <td colSpan="3" className="p-20 text-center text-zinc-400 italic flex flex-col items-center justify-center gap-2 h-full border-none">
-                            <FileSpreadsheet className="w-12 h-12 opacity-20 mb-2" />
-                            Sube un archivo base para empezar
+                          <td colSpan="3" className="py-20 text-center text-gray-400 text-sm">
+                            Sube un documento base para comenzar la previsualización.
                           </td>
                         </tr>
                       )}
@@ -283,6 +301,7 @@
                   </table>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
